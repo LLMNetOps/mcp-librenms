@@ -45,25 +45,60 @@ copy .env.example .env        # Windows
 
 ## Running
 
-The server speaks MCP over **stdio**:
+The server speaks MCP over **streamable HTTP** by default, bound to `0.0.0.0:5757`:
 
 ```bash
-# Console script
+# Console script (foreground)
 mcp-librenms
 
 # Or as a module
 python -m mcp_librenms
 ```
 
+Endpoint: **http://\<IP\>:5757/mcp**
+
+### Options
+
+| Flag | Default | Description |
+|---|---|---|
+| `--host IP` | `0.0.0.0` | Bind address |
+| `--port PORT` | `5757` | Bind port |
+| `--daemon` | off | Run in background (detached process) |
+| `--stdio` | off | Use stdio transport instead of HTTP |
+
+Examples:
+
+```bash
+# Background on a custom address/port
+mcp-librenms --daemon --host 192.168.1.10 --port 8080
+# → http://192.168.1.10:8080/mcp
+
+# stdio transport (for MCP clients that spawn the server)
+mcp-librenms --stdio
+```
+
 ### MCP client configuration
 
-Example for Claude Desktop / any MCP client that uses stdio servers:
+Example for any MCP client that supports streamable HTTP servers:
+
+```json
+{
+  "mcpServers": {
+    "librenms": {
+      "url": "http://your-librenms-host:5757/mcp"
+    }
+  }
+}
+```
+
+For stdio-based clients (Claude Desktop, etc.), spawn the server with `--stdio`:
 
 ```json
 {
   "mcpServers": {
     "librenms": {
       "command": "D:\\path\\to\\.venv\\Scripts\\mcp-librenms.exe",
+      "args": ["--stdio"],
       "env": {
         "LIBRENMS_URL": "http://your-librenms-host",
         "LIBRENMS_TOKEN": "your-api-token"

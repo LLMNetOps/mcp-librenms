@@ -1,12 +1,19 @@
 """LibreNMS MCP Server — exposes LibreNMS API operations as MCP tools (FastMCP)."""
 
+import argparse
 import json
+import os
+import subprocess
+import sys
+from pathlib import Path
 from typing import Optional
 
 from dotenv import load_dotenv
 from fastmcp import FastMCP
 
+# Load .env from CWD first, then fall back to the project root (package parent)
 load_dotenv()
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 mcp = FastMCP("librenms-mcp")
 
@@ -30,8 +37,20 @@ def _json(data) -> str:
 
 @mcp.tool
 def ping() -> str:
-    """Check LibreNMS API availability. Returns 'pong' when the API is reachable."""
-    return _json(client().ping())
+    """Check LibreNMS API availability. Sends exactly 3 ping requests (not continuous)
+    and reports the result of each."""
+    c = client()
+    results = []
+    for i in range(1, 4):
+        try:
+            results.append({"ping": i, "status": "ok", "response": c.ping()})
+        except Exception as e:
+            results.append({"ping": i, "status": "fail", "error": str(e)})
+    return _json({
+        "pings": results,
+        "success": sum(1 for r in results if r["status"] == "ok"),
+        "total": len(results),
+    })
 
 
 @mcp.tool
@@ -473,9 +492,51 @@ def get_inventory(hostname: str, entPhysicalClass: Optional[str] = None) -> str:
     return _json(client().get_inventory(hostname, **params))
 
 
+def _spawn_daemon(args: argparse.Namespace) -> None:
+    """Re-launch this server as a detached background process."""
+    cmd = [sys.executable, "-m", "mcp_librenms",
+           "--host", args.host, "--port", str(args.port)]
+    kwargs = dict(
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        stdin=subprocess.DEVNULL,
+        cwd=str(Path(__file__).resolve().parent.parent),
+    )
+    if os.name == "nt":
+        # DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP
+        kwargs["creationflags"] = 0x00000008 | 0x00000200
+    else:
+        kwargs["start_new_session"] = True
+    proc = subprocess.Popen(cmd, **kwargs)
+    print(f"mcp-librenms started in background (PID {proc.pid})")
+    print(f"Endpoint: http://{args.host}:{args.port}/mcp")
+
+
 def run():
-    """Console-script entry point (stdio transport)."""
-    mcp.run()
+    """Console-script entry point.
+
+    Default: HTTP transport on 0.0.0.0:5757 (endpoint http://<ip>:5757/mcp).
+    Options: --daemon (background), --host, --port, --stdio.
+    """
+    parser = argparse.ArgumentParser(description="LibreNMS MCP server (FastMCP)")
+    parser.add_argument("--daemon", action="store_true",
+                        help="run in background (detached process)")
+    parser.add_argument("--host", default="0.0.0.0",
+                        help="bind address (default: 0.0.0.0)")
+    parser.add_argument("--port", type=int, default=5757,
+                        help="bind port (default: 5757)")
+    parser.add_argument("--stdio", action="store_true",
+                        help="use stdio transport instead of HTTP")
+    args = parser.parse_args()
+
+    if args.daemon:
+        _spawn_daemon(args)
+        return
+
+    if args.stdio:
+        mcp.run(transport="stdio")
+    else:
+        mcp.run(transport="http", host=args.host, port=args.port)
 
 
 if __name__ == "__main__":
