@@ -38,9 +38,19 @@ source .venv/bin/activate     # Linux/macOS
 pip install -e .
 
 # 3. Configure
-copy .env.example .env        # Windows
-# cp .env.example .env        # Linux/macOS
-# then edit .env with your LibreNMS URL and API token
+copy config.example.yaml config.yaml   # Windows
+# cp config.example.yaml config.yaml   # Linux/macOS
+# then edit config.yaml with your LibreNMS URL and API token
+```
+
+### Configuration
+
+`config.yaml` (gitignored — never commit it):
+
+```yaml
+librenms:
+  url: "http://your-librenms-host"   # base URL, no trailing slash
+  token: "your-api-token"            # LibreNMS web UI: Settings > API > API Settings
 ```
 
 ## Running
@@ -49,10 +59,10 @@ The server speaks MCP over **streamable HTTP** by default, bound to `0.0.0.0:575
 
 ```bash
 # Console script (foreground)
-mcp-librenms
+mcp-librenms --config config.yaml
 
 # Or as a module
-python -m mcp_librenms
+python -m mcp_librenms --config config.yaml
 ```
 
 Endpoint: **http://\<IP\>:5757/mcp**
@@ -61,6 +71,7 @@ Endpoint: **http://\<IP\>:5757/mcp**
 
 | Flag | Default | Description |
 |---|---|---|
+| `--config FILE` | `config.yaml` | Path to YAML config file (CWD, then project root) |
 | `--host IP` | `0.0.0.0` | Bind address |
 | `--port PORT` | `5757` | Bind port |
 | `--daemon` | off | Run in background (detached process) |
@@ -70,11 +81,11 @@ Examples:
 
 ```bash
 # Background on a custom address/port
-mcp-librenms --daemon --host 192.168.1.10 --port 8080
+mcp-librenms --config config.yaml --daemon --host 192.168.1.10 --port 8080
 # → http://192.168.1.10:8080/mcp
 
 # stdio transport (for MCP clients that spawn the server)
-mcp-librenms --stdio
+mcp-librenms --config config.yaml --stdio
 ```
 
 ### MCP client configuration
@@ -91,18 +102,14 @@ Example for any MCP client that supports streamable HTTP servers:
 }
 ```
 
-For stdio-based clients (Claude Desktop, etc.), spawn the server with `--stdio`:
+For stdio-based clients (Claude Desktop, etc.), spawn the server with `--stdio` and point `--config` at your config file:
 
 ```json
 {
   "mcpServers": {
     "librenms": {
       "command": "D:\\path\\to\\.venv\\Scripts\\mcp-librenms.exe",
-      "args": ["--stdio"],
-      "env": {
-        "LIBRENMS_URL": "http://your-librenms-host",
-        "LIBRENMS_TOKEN": "your-api-token"
-      }
+      "args": ["--config", "D:\\path\\to\\mcp-librenms\\config.yaml", "--stdio"]
     }
   }
 }
@@ -114,7 +121,8 @@ For stdio-based clients (Claude Desktop, etc.), spawn the server with `--stdio`:
 
 ```
 mcp-librenms/
-├── .env.example          # Template for local configuration
+├── config.example.yaml   # Template for local configuration
+├── config.yaml           # Your local configuration (gitignored)
 ├── .gitignore
 ├── README.md
 ├── pyproject.toml        # Package metadata + console script

@@ -1,18 +1,18 @@
 """LibreNMS API HTTP client."""
 
-import os
 import httpx
 from typing import Any, Optional
 
 
 class LibreNMSClient:
-    def __init__(self):
-        self.base_url = os.environ.get("LIBRENMS_URL", "").rstrip("/")
-        self.token = os.environ.get("LIBRENMS_TOKEN", "")
-        if not self.base_url or not self.token:
+    def __init__(self, base_url: str, token: str):
+        if not base_url or not token:
             raise ValueError(
-                "LIBRENMS_URL and LIBRENMS_TOKEN environment variables must be set"
+                "LibreNMS base_url and token are required "
+                "(set them in the config file, see config.example.yaml)"
             )
+        self.base_url = base_url.rstrip("/")
+        self.token = token
         self.api_base = f"{self.base_url}/api/v0"
         self.headers = {"X-Auth-Token": self.token, "Content-Type": "application/json"}
 

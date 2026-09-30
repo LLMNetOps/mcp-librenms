@@ -12,6 +12,7 @@ env/
 
 # Environment / secrets
 .env
+config.yaml
 
 # IDE / editor
 .vscode/

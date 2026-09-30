@@ -1,0 +1,12 @@
+# LibreNMS MCP Server configuration
+# Copy this file to config.yaml and fill in your values:
+#   copy config.example.yaml config.yaml        (Windows)
+#   cp config.example.yaml config.yaml          (Linux/macOS)
+#
+# Run the server with:  mcp-librenms --config config.yaml
+
+librenms:
+  # LibreNMS base URL (no trailing slash)
+  url: "http://your-librenms-host"
+  # API token — generate at LibreNMS web UI: Settings > API > API Settings
+  token: "your-api-token"

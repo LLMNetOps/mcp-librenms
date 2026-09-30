@@ -8,24 +8,54 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-from dotenv import load_dotenv
+import yaml
 from fastmcp import FastMCP
-
-# Load .env from CWD first, then fall back to the project root (package parent)
-load_dotenv()
-load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 mcp = FastMCP("librenms-mcp")
 
-# Lazy-initialised client so env vars can be loaded before import
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+# Lazy-initialised client so the config is loaded before the first tool call
 _client = None
+_config: dict = {}
+
+
+def _resolve_config(path: str) -> Path:
+    """Resolve a (possibly relative) config path: CWD first, then project root."""
+    p = Path(path)
+    if not p.is_absolute():
+        cwd_candidate = Path.cwd() / p
+        if cwd_candidate.exists():
+            return cwd_candidate
+        return PROJECT_ROOT / p
+    return p
+
+
+def load_config(path: str) -> dict:
+    """Load and validate the YAML config file."""
+    p = _resolve_config(path)
+    if not p.exists():
+        raise FileNotFoundError(
+            f"Config file not found: {p} "
+            f"(copy config.example.yaml to config.yaml and fill in your values)"
+        )
+    with open(p, "r", encoding="utf-8") as f:
+        data = yaml.safe_load(f) or {}
+    lib = data.get("librenms") or {}
+    url = str(lib.get("url") or "").strip()
+    token = str(lib.get("token") or "").strip()
+    if not url or not token:
+        raise ValueError(
+            f"Config file {p} must define non-empty librenms.url and librenms.token"
+        )
+    return {"url": url, "token": token}
 
 
 def client():
     global _client
     if _client is None:
         from mcp_librenms.client import LibreNMSClient
-        _client = LibreNMSClient()
+        _client = LibreNMSClient(_config["url"], _config["token"])
     return _client
 
 
@@ -495,6 +525,7 @@ def get_inventory(hostname: str, entPhysicalClass: Optional[str] = None) -> str:
 def _spawn_daemon(args: argparse.Namespace) -> None:
     """Re-launch this server as a detached background process."""
     cmd = [sys.executable, "-m", "mcp_librenms",
+           "--config", str(_resolve_config(args.config)),
            "--host", args.host, "--port", str(args.port)]
     kwargs = dict(
         stdout=subprocess.DEVNULL,
@@ -516,9 +547,11 @@ def run():
     """Console-script entry point.
 
     Default: HTTP transport on 0.0.0.0:5757 (endpoint http://<ip>:5757/mcp).
-    Options: --daemon (background), --host, --port, --stdio.
+    Options: --config (YAML config), --daemon (background), --host, --port, --stdio.
     """
     parser = argparse.ArgumentParser(description="LibreNMS MCP server (FastMCP)")
+    parser.add_argument("--config", default="config.yaml",
+                        help="path to YAML config file (default: config.yaml)")
     parser.add_argument("--daemon", action="store_true",
                         help="run in background (detached process)")
     parser.add_argument("--host", default="0.0.0.0",
@@ -528,6 +561,12 @@ def run():
     parser.add_argument("--stdio", action="store_true",
                         help="use stdio transport instead of HTTP")
     args = parser.parse_args()
+
+    global _config
+    try:
+        _config = load_config(args.config)
+    except (FileNotFoundError, ValueError) as e:
+        parser.error(str(e))
 
     if args.daemon:
         _spawn_daemon(args)
