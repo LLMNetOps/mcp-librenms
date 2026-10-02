@@ -41,6 +41,12 @@ pip install -e .
 copy config.example.yaml config.yaml   # Windows
 # cp config.example.yaml config.yaml   # Linux/macOS
 # then edit config.yaml with your LibreNMS URL and API token
+
+Or
+pipx install "git+https://github.com/LLMNetOps/mcp-librenms.git"
+
+Or
+pipx install mcp-librenms
 ```
 
 ### Configuration
