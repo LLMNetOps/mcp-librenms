@@ -209,3 +209,22 @@ class LibreNMSClient:
     # ── Inventory ─────────────────────────────────────────────────────────────
     def get_inventory(self, hostname: str, **params) -> dict:
         return self._get(f"/inventory/{hostname}", params=params or None)
+
+    # ── Routing ─────────────────────────────────────────────────────────────
+    def list_bgp(self) -> dict:
+        return self._get("/bgp")
+
+    def get_bgp(self, peer_id: int) -> dict:
+        return self._get(f"/bgp/{peer_id}")
+
+    def list_ospf(self) -> dict:
+        return self._get("/ospf")
+
+    def list_ospf_ports(self) -> dict:
+        return self._get("/ospf_ports")
+
+    def list_ospfv3(self) -> dict:
+        return self._get("/ospfv3")
+
+    def list_ospfv3_ports(self) -> dict:
+        return self._get("/ospfv3_ports")

@@ -4,7 +4,7 @@ MCP (Model Context Protocol) server that exposes the [LibreNMS](https://www.libr
 
 ## Features
 
-~40 tools covering:
+~50 tools covering:
 
 | Category | Tools |
 |---|---|
@@ -19,6 +19,7 @@ MCP (Model Context Protocol) server that exposes the [LibreNMS](https://www.libr
 | **ARP** | `list_arp` |
 | **Services** | `list_services` |
 | **Inventory** | `get_inventory` |
+| **Routing** | `get_routing_table`, `list_bgp_peers`, `get_bgp_peer`, `list_ospf_neighbors`, `list_ospf_ports`, `list_ospfv3_neighbors`, `list_ospfv3_ports` |
 
 ## Requirements
 

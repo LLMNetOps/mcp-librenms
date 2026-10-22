@@ -522,6 +522,115 @@ def get_inventory(hostname: str, entPhysicalClass: Optional[str] = None) -> str:
     return _json(client().get_inventory(hostname, **params))
 
 
+# ── Routing ───────────────────────────────────────────────────────────────────
+
+# Key fields kept per entry in the compact routing-table view.
+_BGP_FIELDS = (
+    "bgpPeer_id", "device_id", "bgpPeerRemoteAddr", "bgpPeerRemoteAs",
+    "astext", "bgpPeerState", "bgpPeerAdminStatus", "bgpPeerIface",
+    "bgpLocalAddr", "bgpPeerDescr",
+)
+_OSPF_NBR_FIELDS = (
+    "id", "device_id", "port_id", "ospfNbrIpAddr", "ospfNbrRtrId",
+    "ospfNbrState", "ospfNbmaNbrStatus",
+)
+_OSPF_PORT_FIELDS = (
+    "id", "device_id", "port_id", "ospfIfIpAddress", "ospfIfAreaId",
+    "ospfIfType", "ospfIfState", "ospfIfDesignatedRouter",
+)
+_OSPFV3_NBR_FIELDS = (
+    "id", "device_id", "port_id", "ospfv3NbrRtrId", "ospfv3NbrAddress",
+    "ospfv3NbrState",
+)
+_OSPFV3_PORT_FIELDS = (
+    "id", "device_id", "ospfv3_area_id", "ospfv3IfAreaId", "ospfv3IfType",
+    "ospfv3IfState", "ospfv3IfDesignatedRouter",
+)
+
+
+def _compact(items: list, fields: tuple) -> list:
+    """Reduce each entry to the given key fields (missing keys become null)."""
+    return [{f: item.get(f) for f in fields} for item in items]
+
+
+def _routing_table(protocol: Optional[str]) -> dict:
+    """Fetch and compact the routing data for the requested protocol(s)."""
+    c = client()
+    result: dict = {}
+    want = (protocol or "all").lower()
+
+    if want in ("all", "bgp"):
+        sessions = c.list_bgp().get("bgp_sessions", [])
+        result["bgp_sessions"] = _compact(sessions, _BGP_FIELDS)
+    if want in ("all", "ospf"):
+        nbrs = c.list_ospf().get("ospf_neighbours", [])
+        ports = c.list_ospf_ports().get("ospf_ports", [])
+        result["ospf_neighbours"] = _compact(nbrs, _OSPF_NBR_FIELDS)
+        result["ospf_ports"] = _compact(ports, _OSPF_PORT_FIELDS)
+    if want in ("all", "ospfv3"):
+        nbrs = c.list_ospfv3().get("ospfv3_neighbours", [])
+        ports = c.list_ospfv3_ports().get("ospfv3_ports", [])
+        result["ospfv3_neighbours"] = _compact(nbrs, _OSPFV3_NBR_FIELDS)
+        result["ospfv3_ports"] = _compact(ports, _OSPFV3_PORT_FIELDS)
+
+    if not result:
+        raise ValueError(
+            f"Unknown protocol '{protocol}'. Use 'bgp', 'ospf', 'ospfv3' or 'all'."
+        )
+    return result
+
+
+@mcp.tool
+def get_routing_table(protocol: Optional[str] = None) -> str:
+    """Get the complete routing table from LibreNMS across all monitored devices.
+
+    Returns every BGP session/peer and OSPF/OSPFv3 neighbour and port in a
+    compact form (key fields only). Optional `protocol` to limit the output to
+    a single protocol: 'bgp', 'ospf', 'ospfv3' (default: all).
+
+    Note: LibreNMS tracks routing *protocol state* (BGP/OSPF sessions and
+    neighbours), not a prefix-level route list. Use the per-protocol tools
+    (list_bgp_peers, list_ospf_neighbors, ...) for full field detail.
+    """
+    return _json(_routing_table(protocol))
+
+
+@mcp.tool
+def list_bgp_peers() -> str:
+    """List all BGP sessions/peers across every monitored device (full detail)."""
+    return _json(client().list_bgp())
+
+
+@mcp.tool
+def get_bgp_peer(peer_id: int) -> str:
+    """Get full details for a single BGP session/peer by its bgpPeer_id."""
+    return _json(client().get_bgp(peer_id))
+
+
+@mcp.tool
+def list_ospf_neighbors() -> str:
+    """List all OSPF (v2) neighbours across every monitored device (full detail)."""
+    return _json(client().list_ospf())
+
+
+@mcp.tool
+def list_ospf_ports() -> str:
+    """List all OSPF (v2) ports/interfaces across every monitored device (full detail)."""
+    return _json(client().list_ospf_ports())
+
+
+@mcp.tool
+def list_ospfv3_neighbors() -> str:
+    """List all OSPFv3 neighbours across every monitored device (full detail)."""
+    return _json(client().list_ospfv3())
+
+
+@mcp.tool
+def list_ospfv3_ports() -> str:
+    """List all OSPFv3 ports/interfaces across every monitored device (full detail)."""
+    return _json(client().list_ospfv3_ports())
+
+
 def _spawn_daemon(args: argparse.Namespace) -> None:
     """Re-launch this server as a detached background process."""
     cmd = [sys.executable, "-m", "mcp_librenms",
