@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mcp-librenms"
-version = "0.1.1"
+version = "0.1.2"
 description = "MCP server that exposes the LibreNMS REST API as MCP tools"
 readme = "README.md"
 requires-python = ">=3.9"
