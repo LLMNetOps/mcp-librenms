@@ -123,54 +123,6 @@ def get_device(hostname: str) -> str:
 
 
 @mcp.tool
-def add_device(
-    hostname: str,
-    snmpver: Optional[str] = None,
-    community: Optional[str] = None,
-    port: Optional[int] = None,
-    transport: Optional[str] = None,
-    authlevel: Optional[str] = None,
-    authname: Optional[str] = None,
-    authpass: Optional[str] = None,
-    authalgo: Optional[str] = None,
-    cryptopass: Optional[str] = None,
-    cryptoalgo: Optional[str] = None,
-    force_add: Optional[bool] = None,
-) -> str:
-    """Add a new device to LibreNMS monitoring.
-
-    Required: hostname. Common optional fields: snmpver (v1/v2c/v3), community
-    (SNMPv1/v2c), authlevel, authname, authpass, authalgo, cryptopass, cryptoalgo
-    (SNMPv3), port, transport (udp/tcp/udp6/tcp6), force_add.
-    """
-    data = {
-        "hostname": hostname, "snmpver": snmpver, "community": community,
-        "port": port, "transport": transport, "authlevel": authlevel,
-        "authname": authname, "authpass": authpass, "authalgo": authalgo,
-        "cryptopass": cryptopass, "cryptoalgo": cryptoalgo, "force_add": force_add,
-    }
-    return _json(client().add_device({k: v for k, v in data.items() if v is not None}))
-
-
-@mcp.tool
-def delete_device(hostname: str) -> str:
-    """Remove a device from LibreNMS monitoring."""
-    return _json(client().delete_device(hostname))
-
-
-@mcp.tool
-def update_device_field(hostname: str, field: str, data: dict) -> str:
-    """Update a field on a device (e.g. location, notes, ignore, disable, etc.)."""
-    return _json(client().update_device_field(hostname, field, data))
-
-
-@mcp.tool
-def rename_device(hostname: str, new_hostname: str) -> str:
-    """Rename a device to a new hostname."""
-    return _json(client().rename_device(hostname, new_hostname))
-
-
-@mcp.tool
 def discover_device(hostname: str) -> str:
     """Trigger immediate SNMP discovery for a device."""
     return _json(client().discover_device(hostname))
@@ -229,26 +181,6 @@ def get_device_maintenance(hostname: str) -> str:
 
 
 @mcp.tool
-def set_device_maintenance(
-    hostname: str,
-    duration: str,
-    title: Optional[str] = None,
-    notes: Optional[str] = None,
-    start: Optional[str] = None,
-) -> str:
-    """Put a device into maintenance mode.
-
-    Required: duration (format H:i e.g. '02:00').
-    Optional: title, notes, start (format 'Y-m-d H:i:00').
-    """
-    data = {"duration": duration}
-    for key, value in (("title", title), ("notes", notes), ("start", start)):
-        if value is not None:
-            data[key] = value
-    return _json(client().set_device_maintenance(hostname, data))
-
-
-@mcp.tool
 def add_device_eventlog(hostname: str, text: str, severity: str = "2") -> str:
     """Add a custom event log entry for a device.
 
@@ -304,12 +236,6 @@ def list_alert_rules() -> str:
 def get_alert_rule(rule_id: int) -> str:
     """Get details for a specific alert rule by ID."""
     return _json(client().get_alert_rule(rule_id))
-
-
-@mcp.tool
-def delete_alert_rule(rule_id: int) -> str:
-    """Delete an alert rule by ID."""
-    return _json(client().delete_alert_rule(rule_id))
 
 
 # ── Ports ─────────────────────────────────────────────────────────────────────
@@ -431,41 +357,6 @@ def list_locations() -> str:
 def get_location(location: str) -> str:
     """Get details for a specific location by name or ID."""
     return _json(client().get_location(location))
-
-
-@mcp.tool
-def add_location(
-    location: str,
-    lat: Optional[str] = None,
-    lng: Optional[str] = None,
-    fixed_coordinates: Optional[int] = None,
-) -> str:
-    """Add a new location with coordinates.
-
-    fixed_coordinates: 1=fixed, 0=auto-update from device.
-    """
-    data = {
-        "location": location, "lat": lat, "lng": lng,
-        "fixed_coordinates": fixed_coordinates,
-    }
-    return _json(client().add_location({k: v for k, v in data.items() if v is not None}))
-
-
-@mcp.tool
-def delete_location(location: str) -> str:
-    """Delete a location by name or ID."""
-    return _json(client().delete_location(location))
-
-
-@mcp.tool
-def edit_location(
-    location: str,
-    lat: Optional[str] = None,
-    lng: Optional[str] = None,
-) -> str:
-    """Edit a location's coordinates."""
-    data = {"lat": lat, "lng": lng}
-    return _json(client().edit_location(location, {k: v for k, v in data.items() if v is not None}))
 
 
 # ── Sensors ───────────────────────────────────────────────────────────────────
@@ -629,6 +520,48 @@ def list_ospfv3_neighbors() -> str:
 def list_ospfv3_ports() -> str:
     """List all OSPFv3 ports/interfaces across every monitored device (full detail)."""
     return _json(client().list_ospfv3_ports())
+
+
+# ── Health / VLAN / MAC ───────────────────────────────────────────────────────
+
+@mcp.tool
+def get_device_health(hostname: str) -> str:
+    """Get health status and available health graphs for a device.
+
+    Returns overall status (ok/warning/critical) plus the list of health
+    graphs (device state, temperature, processor, memory, current, etc.).
+    """
+    return _json(client().get_device_health(hostname))
+
+
+@mcp.tool
+def list_vlans() -> str:
+    """List all VLANs across every monitored device."""
+    return _json(client().list_vlans())
+
+
+@mcp.tool
+def get_device_vlans(hostname: str) -> str:
+    """List all VLANs on a specific device."""
+    return _json(client().get_device_vlans(hostname))
+
+
+@mcp.tool
+def list_mac(hostname: str) -> str:
+    """List all MAC addresses (FDB) learned on a specific device."""
+    return _json(client().list_mac(hostname))
+
+
+@mcp.tool
+def get_mac(mac: str) -> str:
+    """Find where a specific MAC address is seen (ports/FDB entries)."""
+    return _json(client().get_mac(mac))
+
+
+@mcp.tool
+def search_mac(mac: str) -> str:
+    """Search a MAC address and return detailed location info (device, port, last seen)."""
+    return _json(client().search_mac(mac))
 
 
 def _spawn_daemon(args: argparse.Namespace) -> None:

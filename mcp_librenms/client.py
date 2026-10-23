@@ -65,18 +65,6 @@ class LibreNMSClient:
     def get_device(self, hostname: str) -> dict:
         return self._get(f"/devices/{hostname}")
 
-    def add_device(self, data: dict) -> dict:
-        return self._post("/devices", data)
-
-    def delete_device(self, hostname: str) -> dict:
-        return self._delete(f"/devices/{hostname}")
-
-    def update_device_field(self, hostname: str, field: str, data: dict) -> dict:
-        return self._patch(f"/devices/{hostname}", {"field": field, **data})
-
-    def rename_device(self, hostname: str, new_hostname: str) -> dict:
-        return self._patch(f"/devices/{hostname}/rename/{new_hostname}")
-
     def discover_device(self, hostname: str) -> dict:
         return self._get(f"/devices/{hostname}/discover")
 
@@ -104,9 +92,6 @@ class LibreNMSClient:
     def get_device_maintenance(self, hostname: str) -> dict:
         return self._get(f"/devices/{hostname}/maintenance")
 
-    def set_device_maintenance(self, hostname: str, data: dict) -> dict:
-        return self._post(f"/devices/{hostname}/maintenance", data)
-
     def add_device_eventlog(self, hostname: str, text: str, severity: str = "2") -> dict:
         return self._post(f"/devices/{hostname}/eventlog", {"text": text, "severity": severity})
 
@@ -128,9 +113,6 @@ class LibreNMSClient:
 
     def get_alert_rule(self, rule_id: int) -> dict:
         return self._get(f"/rules/{rule_id}")
-
-    def delete_alert_rule(self, rule_id: int) -> dict:
-        return self._delete(f"/rules/{rule_id}")
 
     # ── Ports ─────────────────────────────────────────────────────────────────
     def get_all_ports(self, columns: Optional[str] = None) -> dict:
@@ -176,15 +158,6 @@ class LibreNMSClient:
     def get_location(self, location: str) -> dict:
         return self._get(f"/location/{location}")
 
-    def add_location(self, data: dict) -> dict:
-        return self._post("/locations", data)
-
-    def delete_location(self, location: str) -> dict:
-        return self._delete(f"/locations/{location}")
-
-    def edit_location(self, location: str, data: dict) -> dict:
-        return self._patch(f"/locations/{location}", data)
-
     # ── Sensors ───────────────────────────────────────────────────────────────
     def list_sensors(self) -> dict:
         return self._get("/resources/sensors")
@@ -228,3 +201,22 @@ class LibreNMSClient:
 
     def list_ospfv3_ports(self) -> dict:
         return self._get("/ospfv3_ports")
+
+    # ── Health / VLAN / MAC ─────────────────────────────────────────────────
+    def get_device_health(self, hostname: str) -> dict:
+        return self._get(f"/devices/{hostname}/health")
+
+    def list_vlans(self) -> dict:
+        return self._get("/resources/vlans")
+
+    def get_device_vlans(self, hostname: str) -> dict:
+        return self._get(f"/devices/{hostname}/vlans")
+
+    def list_mac(self, hostname: str) -> dict:
+        return self._get(f"/devices/{hostname}/fdb")
+
+    def get_mac(self, mac: str) -> dict:
+        return self._get(f"/resources/fdb/{mac}")
+
+    def search_mac(self, mac: str) -> dict:
+        return self._get(f"/resources/fdb/{mac}/detail")
