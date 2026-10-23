@@ -10,3 +10,22 @@ librenms:
   url: "http://your-librenms-host"
   # API token — generate at LibreNMS web UI: Settings > API > API Settings
   token: "your-api-token"
+
+# OPTIONAL — only needed for the list_bgp_prefixes tool, which reads the
+# prefix-level routing table directly from the LibreNMS database (the REST API
+# does not expose it). Leave this section out if you don't need that tool.
+#
+#   type: mysql | mariadb | postgres
+#   host: database host (e.g. 127.0.0.1)
+#   port: database port (3306 for MySQL/MariaDB, 5432 for PostgreSQL)
+#   name: LibreNMS database name (usually "librenms")
+#   user: a read-only database user
+#   password: that user's password
+#
+# database:
+#   type: "mysql"
+#   host: "127.0.0.1"
+#   port: 3306
+#   name: "librenms"
+#   user: "mcp_readonly"
+#   password: "your-db-password"

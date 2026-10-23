@@ -49,7 +49,8 @@ def load_config(path: str) -> dict:
         raise ValueError(
             f"Config file {p} must define non-empty librenms.url and librenms.token"
         )
-    return {"url": url, "token": token}
+    db = data.get("database") or {}
+    return {"url": url, "token": token, "database": db}
 
 
 def client():
@@ -486,6 +487,41 @@ def list_bgp_prefix_counters(hostname: Optional[str] = None) -> str:
         hostname: Optional device hostname to filter by.
     """
     return _json(client().list_cbgp(**{"hostname": hostname} if hostname else {}))
+
+
+@mcp.tool
+def list_bgp_prefixes(hostname: Optional[str] = None, protocol: Optional[str] = "bgp", limit: int = 1000) -> str:
+    """List prefix-level routes (the actual routing table) read from the
+    LibreNMS database.
+
+    NOTE: This data is NOT available via the LibreNMS REST API — it is read
+    directly from the LibreNMS database ``route`` table. Requires the optional
+    ``database`` section in config.yaml (see config.example.yaml). If it is not
+    configured, this tool returns an explanatory error.
+
+    Args:
+        hostname: Optional device hostname to filter by.
+        protocol: 'bgp' (default), 'ospf', 'static', 'isis', 'eigrp', 'rip',
+            or 'all' for every route.
+        limit: Max routes to return (default 1000, max 10000).
+    """
+    db = _config.get("database") or {}
+    if not db.get("user") or not db.get("name"):
+        return _json({
+            "status": "error",
+            "error": "Database access not configured.",
+            "detail": (
+                "list_bgp_prefixes reads the LibreNMS database directly (the "
+                "REST API does not expose the prefix-level routing table). Add a "
+                "'database' section to config.yaml (see config.example.yaml) with "
+                "type/host/port/name/user/password, then restart the server."
+            ),
+        })
+    from mcp_librenms import db as lndb
+    try:
+        return _json(lndb.list_routes(db, hostname=hostname, protocol=protocol, limit=limit))
+    except Exception as e:
+        return _json({"status": "error", "error": f"Database query failed: {e}"})
 
 
 @mcp.tool

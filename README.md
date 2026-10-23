@@ -4,7 +4,7 @@ MCP (Model Context Protocol) server that exposes the [LibreNMS](https://www.libr
 
 ## Features
 
-~51 read-only tools covering:
+~52 read-only tools covering:
 
 | Category | Tools |
 |---|---|
@@ -19,9 +19,11 @@ MCP (Model Context Protocol) server that exposes the [LibreNMS](https://www.libr
 | **ARP** | `list_arp` |
 | **Services** | `list_services` |
 | **Inventory** | `get_inventory` |
-| **Routing** | `get_routing_table`, `list_bgp_peers`, `get_bgp_peer`, `list_bgp_prefix_counters`, `list_ospf_neighbors`, `list_ospf_ports`, `list_ospfv3_neighbors`, `list_ospfv3_ports` |
+| **Routing** | `get_routing_table`, `list_bgp_peers`, `get_bgp_peer`, `list_bgp_prefix_counters`, `list_bgp_prefixes`*, `list_ospf_neighbors`, `list_ospf_ports`, `list_ospfv3_neighbors`, `list_ospfv3_ports` |
 | **Health / VLAN / MAC** | `get_device_health`, `list_vlans`, `get_device_vlans`, `list_mac`, `get_mac`, `search_mac` |
 | **Lookup / BGP / Report** | `lookup_device`, `bgp_session`, `device_report` |
+
+\* `list_bgp_prefixes` reads the prefix-level routing table directly from the LibreNMS **database** (the REST API does not expose it). It requires the optional `database` section in `config.yaml` — see `config.example.yaml`. Without it, the tool returns a clear "not configured" message.
 
 ## Requirements
 
