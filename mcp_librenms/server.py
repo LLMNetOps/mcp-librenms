@@ -7,6 +7,7 @@ import subprocess
 import sys
 from pathlib import Path
 from typing import Optional
+from datetime import datetime, timezone
 
 import yaml
 from fastmcp import FastMCP
@@ -180,15 +181,6 @@ def get_device_maintenance(hostname: str) -> str:
     return _json(client().get_device_maintenance(hostname))
 
 
-@mcp.tool
-def add_device_eventlog(hostname: str, text: str, severity: str = "2") -> str:
-    """Add a custom event log entry for a device.
-
-    Severity: 1=ok, 2=info, 3=notice, 4=warning, 5=error.
-    """
-    return _json(client().add_device_eventlog(hostname, text, severity))
-
-
 # ── Alerts ────────────────────────────────────────────────────────────────────
 
 @mcp.tool
@@ -212,18 +204,6 @@ def list_alerts(
 def get_alert(alert_id: int) -> str:
     """Get details for a specific alert by ID."""
     return _json(client().get_alert(alert_id))
-
-
-@mcp.tool
-def ack_alert(alert_id: int) -> str:
-    """Acknowledge an active alert to suppress further notifications."""
-    return _json(client().ack_alert(alert_id))
-
-
-@mcp.tool
-def unmute_alert(alert_id: int) -> str:
-    """Unmute a muted/acknowledged alert so it can fire again."""
-    return _json(client().unmute_alert(alert_id))
 
 
 @mcp.tool
@@ -274,12 +254,6 @@ def get_port_ip_info(port_id: int) -> str:
 def ports_with_mac(mac: str) -> str:
     """Find ports associated with a specific MAC address (various formats accepted)."""
     return _json(client().ports_with_mac(mac))
-
-
-@mcp.tool
-def update_port_description(port_id: int, description: str) -> str:
-    """Update the ifAlias/description for a port. Send empty string to reset to default."""
-    return _json(client().update_port_description(port_id, description))
 
 
 # ── Logs ──────────────────────────────────────────────────────────────────────
@@ -562,6 +536,122 @@ def get_mac(mac: str) -> str:
 def search_mac(mac: str) -> str:
     """Search a MAC address and return detailed location info (device, port, last seen)."""
     return _json(client().search_mac(mac))
+
+
+# ── Lookup / BGP / Report ─────────────────────────────────────────────────────
+
+@mcp.tool
+def lookup_device(query: str) -> str:
+    """Look up a single device by hostname or IP address.
+
+    Returns the full device record (identity, status, uptime, OS, hardware,
+    location, IP, SNMP settings, last polled, etc.). Accepts either the device
+    hostname or its IPv4/IPv6 address.
+    """
+    c = client()
+    # 1) Direct hostname lookup
+    try:
+        devices = c.get_device(query).get("devices") or []
+        if devices:
+            return _json({"query": query, "matched_by": "hostname", "device": devices[0]})
+    except Exception:
+        pass
+    # 2) IP lookup (v4 / v6)
+    for key in ("ipv4", "ipv6"):
+        try:
+            devices = c.list_devices(**{key: query}).get("devices") or []
+        except Exception:
+            continue
+        if devices:
+            return _json({"query": query, "matched_by": key, "device": devices[0]})
+    # 3) Fallback: hostname search
+    try:
+        devices = c.list_devices(hostname=query).get("devices") or []
+    except Exception:
+        devices = []
+    if devices:
+        return _json({"query": query, "matched_by": "hostname-search", "device": devices[0]})
+    return _json({"query": query, "matched_by": None, "device": None,
+                  "message": f"No device found matching '{query}'."})
+
+
+@mcp.tool
+def bgp_session(hostname: Optional[str] = None) -> str:
+    """List BGP sessions/peers, optionally for a single device.
+
+    Without `hostname`, returns every BGP session across all monitored devices.
+    With `hostname`, returns only the sessions on that device. Each session
+    includes peer address, remote AS, state, admin status, interface, and
+    in/out update counters.
+    """
+    params = {"hostname": hostname} if hostname else {}
+    return _json(client().list_bgp(**params))
+
+
+def _report_section(fetch):
+    """Run one report section, returning its data or an error message."""
+    try:
+        return fetch()
+    except Exception as exc:
+        return {"error": str(exc)}
+
+
+@mcp.tool
+def device_report(hostname: str) -> str:
+    """Build a complete read-only report for a single device.
+
+    Aggregates the device's identity/status, health, available graphs,
+    routing (BGP/OSPF/OSPFv3), ports, IP addresses, availability, outages,
+    groups, components, VLANs, MAC/FDB table, services, inventory, sensors,
+    and maintenance status into one structured document. Each section is
+    fetched independently, so a missing or empty section does not fail the
+    whole report.
+    """
+    c = client()
+    report: dict = {
+        "hostname": hostname,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+    def _device():
+        devices = c.get_device(hostname).get("devices") or []
+        return devices[0] if devices else None
+
+    report["device"] = _report_section(_device)
+    device_id = report["device"].get("device_id") if isinstance(report["device"], dict) else None
+
+    report["health"] = _report_section(lambda: c.get_device_health(hostname))
+    report["graphs"] = _report_section(lambda: c.get_device_graphs(hostname))
+
+    report["routing"] = {
+        "bgp_sessions": _report_section(lambda: c.list_bgp(hostname=hostname).get("bgp_sessions", [])),
+        "ospf_neighbours": _report_section(lambda: c.list_ospf(hostname=hostname).get("ospf_neighbours", [])),
+        "ospf_ports": _report_section(lambda: c.list_ospf_ports(hostname=hostname).get("ospf_ports", [])),
+        "ospfv3_neighbours": _report_section(lambda: c.list_ospfv3(hostname=hostname).get("ospfv3_neighbours", [])),
+        "ospfv3_ports": _report_section(lambda: c.list_ospfv3_ports(hostname=hostname).get("ospfv3_ports", [])),
+    }
+
+    report["ports"] = _report_section(lambda: c.get_device_ports(hostname))
+    report["ip_addresses"] = _report_section(lambda: c.get_device_ip_addresses(hostname))
+    report["availability"] = _report_section(lambda: c.get_device_availability(hostname))
+    report["outages"] = _report_section(lambda: c.get_device_outages(hostname))
+    report["groups"] = _report_section(lambda: c.get_device_groups(hostname))
+    report["components"] = _report_section(lambda: c.get_device_components(hostname))
+    report["vlans"] = _report_section(lambda: c.get_device_vlans(hostname))
+    report["mac_fdb"] = _report_section(lambda: c.list_mac(hostname))
+    report["services"] = _report_section(lambda: c.list_services(hostname))
+    report["inventory"] = _report_section(lambda: c.get_inventory(hostname))
+    report["maintenance"] = _report_section(lambda: c.get_device_maintenance(hostname))
+
+    def _sensors():
+        if device_id is None:
+            return []
+        all_sensors = c.list_sensors().get("sensors", [])
+        return [s for s in all_sensors if s.get("device_id") == device_id]
+
+    report["sensors"] = _report_section(_sensors)
+
+    return _json(report)
 
 
 def _spawn_daemon(args: argparse.Namespace) -> None:

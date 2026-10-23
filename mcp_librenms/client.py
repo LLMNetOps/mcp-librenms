@@ -1,7 +1,7 @@
-"""LibreNMS API HTTP client."""
+"""LibreNMS API HTTP client (read-only)."""
 
 import httpx
-from typing import Any, Optional
+from typing import Optional
 
 
 class LibreNMSClient:
@@ -20,34 +20,6 @@ class LibreNMSClient:
         url = f"{self.api_base}{path}"
         with httpx.Client(verify=False, timeout=30) as client:
             resp = client.get(url, headers=self.headers, params=params)
-            resp.raise_for_status()
-            return resp.json()
-
-    def _post(self, path: str, data: Optional[dict] = None) -> dict:
-        url = f"{self.api_base}{path}"
-        with httpx.Client(verify=False, timeout=30) as client:
-            resp = client.post(url, headers=self.headers, json=data or {})
-            resp.raise_for_status()
-            return resp.json()
-
-    def _put(self, path: str, data: Optional[dict] = None) -> dict:
-        url = f"{self.api_base}{path}"
-        with httpx.Client(verify=False, timeout=30) as client:
-            resp = client.put(url, headers=self.headers, json=data or {})
-            resp.raise_for_status()
-            return resp.json()
-
-    def _patch(self, path: str, data: Optional[dict] = None) -> dict:
-        url = f"{self.api_base}{path}"
-        with httpx.Client(verify=False, timeout=30) as client:
-            resp = client.patch(url, headers=self.headers, json=data or {})
-            resp.raise_for_status()
-            return resp.json()
-
-    def _delete(self, path: str) -> dict:
-        url = f"{self.api_base}{path}"
-        with httpx.Client(verify=False, timeout=30) as client:
-            resp = client.delete(url, headers=self.headers)
             resp.raise_for_status()
             return resp.json()
 
@@ -92,21 +64,12 @@ class LibreNMSClient:
     def get_device_maintenance(self, hostname: str) -> dict:
         return self._get(f"/devices/{hostname}/maintenance")
 
-    def add_device_eventlog(self, hostname: str, text: str, severity: str = "2") -> dict:
-        return self._post(f"/devices/{hostname}/eventlog", {"text": text, "severity": severity})
-
     # ── Alerts ────────────────────────────────────────────────────────────────
     def list_alerts(self, **params) -> dict:
         return self._get("/alerts", params=params or None)
 
     def get_alert(self, alert_id: int) -> dict:
         return self._get(f"/alerts/{alert_id}")
-
-    def ack_alert(self, alert_id: int) -> dict:
-        return self._put(f"/alerts/{alert_id}")
-
-    def unmute_alert(self, alert_id: int) -> dict:
-        return self._put(f"/alerts/unmute/{alert_id}")
 
     def list_alert_rules(self) -> dict:
         return self._get("/rules")
@@ -131,9 +94,6 @@ class LibreNMSClient:
 
     def ports_with_mac(self, mac: str) -> dict:
         return self._get(f"/ports/mac/{mac}")
-
-    def update_port_description(self, port_id: int, description: str) -> dict:
-        return self._patch(f"/ports/{port_id}/description", {"description": description})
 
     # ── Logs ──────────────────────────────────────────────────────────────────
     def list_eventlog(self, hostname: Optional[str] = None, **params) -> dict:
@@ -184,23 +144,23 @@ class LibreNMSClient:
         return self._get(f"/inventory/{hostname}", params=params or None)
 
     # ── Routing ─────────────────────────────────────────────────────────────
-    def list_bgp(self) -> dict:
-        return self._get("/bgp")
+    def list_bgp(self, **params) -> dict:
+        return self._get("/bgp", params=params or None)
 
     def get_bgp(self, peer_id: int) -> dict:
         return self._get(f"/bgp/{peer_id}")
 
-    def list_ospf(self) -> dict:
-        return self._get("/ospf")
+    def list_ospf(self, **params) -> dict:
+        return self._get("/ospf", params=params or None)
 
-    def list_ospf_ports(self) -> dict:
-        return self._get("/ospf_ports")
+    def list_ospf_ports(self, **params) -> dict:
+        return self._get("/ospf_ports", params=params or None)
 
-    def list_ospfv3(self) -> dict:
-        return self._get("/ospfv3")
+    def list_ospfv3(self, **params) -> dict:
+        return self._get("/ospfv3", params=params or None)
 
-    def list_ospfv3_ports(self) -> dict:
-        return self._get("/ospfv3_ports")
+    def list_ospfv3_ports(self, **params) -> dict:
+        return self._get("/ospfv3_ports", params=params or None)
 
     # ── Health / VLAN / MAC ─────────────────────────────────────────────────
     def get_device_health(self, hostname: str) -> dict:

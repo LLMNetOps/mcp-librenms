@@ -1,17 +1,17 @@
 # mcp-librenms
 
-MCP (Model Context Protocol) server that exposes the [LibreNMS](https://www.librenms.org/) REST API as MCP tools. Built with [FastMCP](https://github.com/jlowin/fastmcp). Connect AI assistants (Claude Desktop, GitHub Copilot, etc.) to your LibreNMS instance to query and manage monitored devices, ports, alerts, logs, and more.
+MCP (Model Context Protocol) server that exposes the [LibreNMS](https://www.librenms.org/) REST API as MCP tools. Built with [FastMCP](https://github.com/jlowin/fastmcp). Connect AI assistants (Claude Desktop, GitHub Copilot, etc.) to your LibreNMS instance to query monitored devices, ports, alerts, logs, routing, and more. All tools are **read-only** — they never add, modify, or delete anything in LibreNMS.
 
 ## Features
 
-~51 tools covering:
+~50 read-only tools covering:
 
 | Category | Tools |
 |---|---|
 | **System** | `ping`, `system_info` |
-| **Devices** | `list_devices`, `get_device`, `discover_device`, `get_device_ports`, `get_device_ip_addresses`, `get_device_availability`, `get_device_outages`, `get_device_groups`, `get_device_components`, `get_device_graphs`, `get_device_maintenance`, `add_device_eventlog` |
-| **Alerts** | `list_alerts`, `get_alert`, `ack_alert`, `unmute_alert`, `list_alert_rules`, `get_alert_rule` |
-| **Ports** | `get_all_ports`, `search_ports`, `get_port_info`, `get_port_ip_info`, `ports_with_mac`, `update_port_description` |
+| **Devices** | `list_devices`, `get_device`, `discover_device`, `get_device_ports`, `get_device_ip_addresses`, `get_device_availability`, `get_device_outages`, `get_device_groups`, `get_device_components`, `get_device_graphs`, `get_device_maintenance` |
+| **Alerts** | `list_alerts`, `get_alert`, `list_alert_rules`, `get_alert_rule` |
+| **Ports** | `get_all_ports`, `search_ports`, `get_port_info`, `get_port_ip_info`, `ports_with_mac` |
 | **Logs** | `list_eventlog`, `list_syslog`, `list_alertlog`, `list_authlog` |
 | **Locations** | `list_locations`, `get_location` |
 | **Sensors** | `list_sensors` |
@@ -21,6 +21,7 @@ MCP (Model Context Protocol) server that exposes the [LibreNMS](https://www.libr
 | **Inventory** | `get_inventory` |
 | **Routing** | `get_routing_table`, `list_bgp_peers`, `get_bgp_peer`, `list_ospf_neighbors`, `list_ospf_ports`, `list_ospfv3_neighbors`, `list_ospfv3_ports` |
 | **Health / VLAN / MAC** | `get_device_health`, `list_vlans`, `get_device_vlans`, `list_mac`, `get_mac`, `search_mac` |
+| **Lookup / BGP / Report** | `lookup_device`, `bgp_session`, `device_report` |
 
 ## Requirements
 
