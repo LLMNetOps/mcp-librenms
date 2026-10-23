@@ -150,6 +150,9 @@ class LibreNMSClient:
     def get_bgp(self, peer_id: int) -> dict:
         return self._get(f"/bgp/{peer_id}")
 
+    def list_cbgp(self, **params) -> dict:
+        return self._get("/routing/bgp/cbgp", params=params or None)
+
     def list_ospf(self, **params) -> dict:
         return self._get("/ospf", params=params or None)
 

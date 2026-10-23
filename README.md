@@ -4,7 +4,7 @@ MCP (Model Context Protocol) server that exposes the [LibreNMS](https://www.libr
 
 ## Features
 
-~50 read-only tools covering:
+~51 read-only tools covering:
 
 | Category | Tools |
 |---|---|
@@ -19,7 +19,7 @@ MCP (Model Context Protocol) server that exposes the [LibreNMS](https://www.libr
 | **ARP** | `list_arp` |
 | **Services** | `list_services` |
 | **Inventory** | `get_inventory` |
-| **Routing** | `get_routing_table`, `list_bgp_peers`, `get_bgp_peer`, `list_ospf_neighbors`, `list_ospf_ports`, `list_ospfv3_neighbors`, `list_ospfv3_ports` |
+| **Routing** | `get_routing_table`, `list_bgp_peers`, `get_bgp_peer`, `list_bgp_prefix_counters`, `list_ospf_neighbors`, `list_ospf_ports`, `list_ospfv3_neighbors`, `list_ospfv3_ports` |
 | **Health / VLAN / MAC** | `get_device_health`, `list_vlans`, `get_device_vlans`, `list_mac`, `get_mac`, `search_mac` |
 | **Lookup / BGP / Report** | `lookup_device`, `bgp_session`, `device_report` |
 
@@ -46,10 +46,12 @@ copy config.example.yaml config.yaml   # Windows
 # then edit config.yaml with your LibreNMS URL and API token
 
 Or
-pipx install "git+https://github.com/LLMNetOps/mcp-librenms.git"
+# from a local clone of this repository
+pipx install mcp-librenms
 
 Or
-pipx install mcp-librenms
+# or straight from GitHub (replace <your-username>)
+pipx install "git+https://github.com/LLMNetOps/mcp-librenms.git"
 ```
 
 ### Configuration

@@ -473,6 +473,22 @@ def get_bgp_peer(peer_id: int) -> str:
 
 
 @mcp.tool
+def list_bgp_prefix_counters(hostname: Optional[str] = None) -> str:
+    """List BGP prefix counters per peer (accepted/advertised/denied/suppressed/
+    withdrawn, plus per-protocol deltas and admin limits).
+
+    NOTE: LibreNMS does not expose a prefix-level routing table (RIB) via its
+    REST API — this returns the BGP prefix *counters* per peer, which is the
+    closest available prefix-related routing data. Use get_routing_table for
+    routing protocol state (BGP/OSPF sessions and neighbours).
+
+    Args:
+        hostname: Optional device hostname to filter by.
+    """
+    return _json(client().list_cbgp(**{"hostname": hostname} if hostname else {}))
+
+
+@mcp.tool
 def list_ospf_neighbors() -> str:
     """List all OSPF (v2) neighbours across every monitored device (full detail)."""
     return _json(client().list_ospf())
