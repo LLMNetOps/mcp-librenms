@@ -1,4 +1,4 @@
-# mcp-librenms
+﻿# mcp-librenms
 
 MCP (Model Context Protocol) server that exposes the [LibreNMS](https://www.librenms.org/) REST API as MCP tools. Built with [FastMCP](https://github.com/jlowin/fastmcp). Connect AI assistants (Claude Desktop, GitHub Copilot, etc.) to your LibreNMS instance to query monitored devices, ports, alerts, logs, routing, and more. All tools are **read-only** — they never add, modify, or delete anything in LibreNMS.
 
@@ -144,7 +144,8 @@ mcp-librenms/
     ├── __init__.py
     ├── __main__.py       # python -m mcp_librenms
     ├── client.py         # LibreNMS REST API HTTP client
-    └── server.py         # MCP server + tool definitions
+        ├── db.py             # Read-only LibreNMS database access (list_bgp_prefixes)
+        └── server.py         # MCP server + tool definitions
 ```
 
 ## License
